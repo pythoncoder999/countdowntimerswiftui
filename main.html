@@ -1,0 +1,210 @@
+import SwiftUI
+
+struct ContentView: View {
+    @State private var targetDate = Date()
+    @State private var timeRemaining = TimeComponents()
+    @State private var message = "Timer reset! Select a date and start again."
+    @State private var timer: Timer?
+    @State private var isCountdownActive = false
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Day Countdown Timer")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+                .foregroundColor(.primary)
+                .padding(.top)
+            
+            // Date Input Section
+            VStack(spacing: 15) {
+                DatePicker("Select Target Date", selection: $targetDate, in: Date()..., displayedComponents: .date)
+                    .datePickerStyle(CompactDatePickerStyle())
+                    .labelsHidden()
+                
+                HStack(spacing: 10) {
+                    Button("Start Countdown") {
+                        startCountdown()
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                    
+                    Button("Reset") {
+                        resetCountdown()
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+                }
+            }
+            .padding()
+            
+            // Message Section
+            Text(message)
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.blue)
+                .multilineTextAlignment(.center)
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.1))
+                        .overlay(
+                            VStack {
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(height: 2)
+                                Spacer()
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(height: 2)
+                            }
+                        )
+                )
+            
+            // Timer Display
+            HStack(spacing: 15) {
+                TimeBlock(value: timeRemaining.days, label: "Days")
+                TimeBlock(value: timeRemaining.hours, label: "Hours")
+                TimeBlock(value: timeRemaining.minutes, label: "Minutes")
+                TimeBlock(value: timeRemaining.seconds, label: "Seconds")
+            }
+            .padding()
+            
+            Spacer()
+        }
+        .padding()
+        .background(Color(.systemGroupedBackground))
+        .onAppear {
+            startCountdown()
+        }
+        .onDisappear {
+            stopTimer()
+        }
+    }
+    
+    private func startCountdown() {
+        stopTimer()
+        
+        let calendar = Calendar.current
+        let now = Date()
+        
+        // Check if the selected date is in the past
+        if calendar.isDate(targetDate, inSameDayAs: now) {
+            // If it's today, allow it
+        } else if targetDate < now {
+            message = "Please select a future date!"
+            return
+        }
+        
+        // Set target date to beginning of selected day
+        let startOfTargetDay = calendar.startOfDay(for: targetDate)
+        
+        updateCountdown(to: startOfTargetDay)
+        
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            updateCountdown(to: startOfTargetDay)
+        }
+        
+        isCountdownActive = true
+    }
+    
+    private func updateCountdown(to targetDate: Date) {
+        let now = Date()
+        let difference = targetDate.timeIntervalSince(now)
+        
+        if difference <= 0 {
+            stopTimer()
+            timeRemaining = TimeComponents()
+            message = "Countdown finished!"
+            return
+        }
+        
+        let days = Int(difference) / (24 * 60 * 60)
+        let hours = Int(difference) % (24 * 60 * 60) / (60 * 60)
+        let minutes = Int(difference) % (60 * 60) / 60
+        let seconds = Int(difference) % 60
+        
+        timeRemaining = TimeComponents(days: days, hours: hours, minutes: minutes, seconds: seconds)
+        
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        message = "Counting down to \(formatter.string(from: targetDate))"
+    }
+    
+    private func resetCountdown() {
+        stopTimer()
+        targetDate = Date()
+        timeRemaining = TimeComponents()
+        message = "Timer reset! Select a date and start again."
+        isCountdownActive = false
+    }
+    
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+}
+
+struct TimeBlock: View {
+    let value: Int
+    let label: String
+    
+    var body: some View {
+        VStack(spacing: 5) {
+            Text("\(value)")
+                .font(.system(size: 32, weight: .bold, design: .default))
+                .foregroundColor(.white)
+            
+            Text(label.uppercased())
+                .font(.caption)
+                .foregroundColor(.white)
+        }
+        .frame(minWidth: 80, minHeight: 80)
+        .background(Color.blue)
+        .cornerRadius(8)
+    }
+}
+
+struct TimeComponents {
+    var days: Int = 0
+    var hours: Int = 0
+    var minutes: Int = 0
+    var seconds: Int = 0
+}
+
+struct PrimaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+            .background(Color.blue)
+            .foregroundColor(.white)
+            .cornerRadius(8)
+            .opacity(configuration.isPressed ? 0.8 : 1.0)
+    }
+}
+
+struct SecondaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+            .background(Color.red)
+            .foregroundColor(.white)
+            .cornerRadius(8)
+            .opacity(configuration.isPressed ? 0.8 : 1.0)
+    }
+}
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
+}
+
+@main
+struct CountdownTimerApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+}
