@@ -8,76 +8,104 @@ struct ContentView: View {
     @State private var isCountdownActive = false
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Day Countdown Timer")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .foregroundColor(.primary)
-                .padding(.top)
+        ZStack {
+            // Dynamic gradient background
+            LinearGradient(
+                gradient: Gradient(colors: [.black, .purple.opacity(0.8), .blue.opacity(0.6)]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            .overlay(
+                Color.black.opacity(isCountdownActive ? 0.3 : 0.1)
+                    .ignoresSafeArea()
+                    .animation(.easeInOut(duration: 1.0), value: isCountdownActive)
+            )
             
-            // Date Input Section
-            VStack(spacing: 15) {
-                DatePicker("Select Target Date", selection: $targetDate, in: Date()..., displayedComponents: .date)
-                    .datePickerStyle(CompactDatePickerStyle())
-                    .labelsHidden()
-                
-                HStack(spacing: 10) {
-                    Button("Start Countdown") {
-                        startCountdown()
-                    }
-                    .buttonStyle(PrimaryButtonStyle())
-                    
-                    Button("Reset") {
-                        resetCountdown()
-                    }
-                    .buttonStyle(SecondaryButtonStyle())
-                }
-            }
-            .padding()
-            
-            // Message Section
-            Text(message)
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.blue)
-                .multilineTextAlignment(.center)
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.1))
-                        .overlay(
-                            VStack {
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.3))
-                                    .frame(height: 2)
-                                Spacer()
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.3))
-                                    .frame(height: 2)
-                            }
+            VStack(spacing: 20) {
+                // Title with glowing effect
+                Text("Quantum Countdown")
+                    .font(.system(size: 36, weight: .heavy, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.cyan, .white],
+                            startPoint: .leading,
+                            endPoint: .trailing
                         )
-                )
-            
-            // Timer Display
-            HStack(spacing: 15) {
-                TimeBlock(value: timeRemaining.days, label: "Days")
-                TimeBlock(value: timeRemaining.hours, label: "Hours")
-                TimeBlock(value: timeRemaining.minutes, label: "Minutes")
-                TimeBlock(value: timeRemaining.seconds, label: "Seconds")
+                    )
+                    .shadow(color: .cyan.opacity(0.5), radius: 10, x: 0, y: 0)
+                    .padding(.top, 40)
+                
+                // Date Input Section
+                VStack(spacing: 15) {
+                    DatePicker("Target Date", selection: $targetDate, in: Date()..., displayedComponents: .date)
+                        .datePickerStyle(.compact)
+                        .labelsHidden()
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 15)
+                                .fill(Color.black.opacity(0.7))
+                                .shadow(color: .white.opacity(0.2), radius: 5, x: 3, y: 3)
+                                .shadow(color: .black.opacity(0.4), radius: 5, x: -3, y: -3)
+                        )
+                        .scaleEffect(isCountdownActive ? 1.05 : 1.0)
+                        .animation(.spring(response: 0.5, dampingFraction: 0.6), value: isCountdownActive)
+                    
+                    HStack(spacing: 15) {
+                        Button("Launch Countdown") {
+                            withAnimation { startCountdown() }
+                        }
+                        .buttonStyle(NeumorphicButtonStyle(isHighlighted: isCountdownActive))
+                        
+                        Button("Reset") {
+                            withAnimation { resetCountdown() }
+                        }
+                        .buttonStyle(NeumorphicButtonStyle(isHighlighted: false, color: .red))
+                    }
+                }
+                .padding(.horizontal)
+                
+                // Message Section with dynamic glow
+                Text(message)
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 15)
+                            .fill(Color.black.opacity(0.8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 15)
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: [.cyan, .purple],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        ),
+                                        lineWidth: 2
+                                    )
+                            )
+                            .shadow(color: .cyan.opacity(isCountdownActive ? 0.5 : 0.2), radius: 10)
+                    )
+                    .padding(.horizontal)
+                    .scaleEffect(isCountdownActive ? 1.02 : 1.0)
+                    .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: isCountdownActive)
+                
+                // Timer Display with animated blocks
+                HStack(spacing: 10) {
+                    TimeBlock(value: timeRemaining.days, label: "Days")
+                    TimeBlock(value: timeRemaining.hours, label: "Hours")
+                    TimeBlock(value: timeRemaining.minutes, label: "Minutes")
+                    TimeBlock(value: timeRemaining.seconds, label: "Seconds")
+                }
+                .padding()
+                
+                Spacer()
             }
             .padding()
-            
-            Spacer()
         }
-        .padding()
-        .background(Color(.systemGroupedBackground))
-        .onAppear {
-            startCountdown()
-        }
-        .onDisappear {
-            stopTimer()
-        }
+        .onAppear { startCountdown() }
+        .onDisappear { stopTimer() }
     }
     
     private func startCountdown() {
@@ -86,21 +114,18 @@ struct ContentView: View {
         let calendar = Calendar.current
         let now = Date()
         
-        // Check if the selected date is in the past
         if calendar.isDate(targetDate, inSameDayAs: now) {
-            // If it's today, allow it
+            // Allow same day
         } else if targetDate < now {
-            message = "Please select a future date!"
+            message = "Select a future date, time traveler!"
             return
         }
         
-        // Set target date to beginning of selected day
         let startOfTargetDay = calendar.startOfDay(for: targetDate)
-        
         updateCountdown(to: startOfTargetDay)
         
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            updateCountdown(to: startOfTargetDay)
+            withAnimation(.easeInOut) { updateCountdown(to: startOfTargetDay) }
         }
         
         isCountdownActive = true
@@ -113,7 +138,8 @@ struct ContentView: View {
         if difference <= 0 {
             stopTimer()
             timeRemaining = TimeComponents()
-            message = "Countdown finished!"
+            message = "Liftoff achieved!"
+            isCountdownActive = false
             return
         }
         
@@ -126,14 +152,14 @@ struct ContentView: View {
         
         let formatter = DateFormatter()
         formatter.dateStyle = .full
-        message = "Counting down to \(formatter.string(from: targetDate))"
+        message = "Warping to \(formatter.string(from: targetDate))"
     }
     
     private func resetCountdown() {
         stopTimer()
         targetDate = Date()
         timeRemaining = TimeComponents()
-        message = "Timer reset! Select a date and start again."
+        message = "Timer reset! Plot a new course."
         isCountdownActive = false
     }
     
@@ -148,18 +174,29 @@ struct TimeBlock: View {
     let label: String
     
     var body: some View {
-        VStack(spacing: 5) {
+        VStack(spacing: 8) {
             Text("\(value)")
-                .font(.system(size: 32, weight: .bold, design: .default))
-                .foregroundColor(.white)
+                .font(.system(size: 36, weight: .bold, design: .monospaced))
+                .foregroundStyle(.white)
+                .shadow(color: .cyan.opacity(0.5), radius: 5)
             
             Text(label.uppercased())
-                .font(.caption)
-                .foregroundColor(.white)
+                .font(.system(size: 12, weight: .medium, design: .rounded))
+                .foregroundStyle(.white.opacity(0.8))
         }
-        .frame(minWidth: 80, minHeight: 80)
-        .background(Color.blue)
-        .cornerRadius(8)
+        .frame(width: 80, height: 80)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.black.opacity(0.7))
+                .shadow(color: .white.opacity(0.2), radius: 5, x: 3, y: 3)
+                .shadow(color: .black.opacity(0.4), radius: 5, x: -3, y: -3)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.cyan.opacity(0.5), lineWidth: 1)
+        )
+        .scaleEffect(value % 2 == 0 ? 1.05 : 1.0)
+        .animation(.easeInOut(duration: 0.5), value: value)
     }
 }
 
@@ -170,27 +207,33 @@ struct TimeComponents {
     var seconds: Int = 0
 }
 
-struct PrimaryButtonStyle: ButtonStyle {
+struct NeumorphicButtonStyle: ButtonStyle {
+    let isHighlighted: Bool
+    var color: Color = .cyan
+    
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(8)
-            .opacity(configuration.isPressed ? 0.8 : 1.0)
-    }
-}
-
-struct SecondaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .background(Color.red)
-            .foregroundColor(.white)
-            .cornerRadius(8)
-            .opacity(configuration.isPressed ? 0.8 : 1.0)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.black.opacity(0.8))
+                    .shadow(color: .white.opacity(0.2), radius: 5, x: 3, y: 3)
+                    .shadow(color: .black.opacity(0.4), radius: 5, x: -3, y: -3)
+            )
+            .foregroundStyle(
+                LinearGradient(
+                    colors: [color, color.opacity(0.7)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(color.opacity(isHighlighted ? 0.8 : 0.4), lineWidth: 2)
+            )
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 
